@@ -1,165 +1,46 @@
 import numpy as np
-import plotly.graph_objects as go
-from plotly.subplots import make_subplots
+import magpylib as magpy
+from scipy.spatial.transform import Rotation as R
+import math
 
-def plot_magnetic_fields(angles, Bx0, By0, Bz0, Bxy0, Bx1, By1, Bxy1, Bz1, angle0, angle1, error0, error1):
-    # Berechne die Statistiken
-    stats = {
-        "Bx0": [round(np.min(Bx0), 4), round(np.max(Bx0), 4), round(np.mean(Bx0), 4)],
-        "By0": [round(np.min(By0), 4), round(np.max(By0), 4), round(np.mean(By0), 4)],
-        "Bxy0": [round(np.min(Bxy0), 4), round(np.max(Bxy0), 4), round(np.mean(Bxy0), 4)],
-        "Bx1": [round(np.min(Bx1), 4), round(np.max(Bx1), 4), round(np.mean(Bx1), 4)],
-        "By1": [round(np.min(By1), 4), round(np.max(By1), 4), round(np.mean(By1), 4)],
-        "Bxy1": [round(np.min(Bxy1), 4), round(np.max(Bxy1), 4), round(np.mean(Bxy1), 4)],
-        "Bz1": [round(np.min(Bz1), 4), round(np.max(Bz1), 4), round(np.mean(Bz1), 4)],
-        "angle0": [round(np.min(angle0), 4), round(np.max(angle0), 4), round(np.mean(angle0), 4)],
-        "angle1": [round(np.min(angle1), 4), round(np.max(angle1), 4), round(np.mean(angle1), 4)],
-        "error0": [round(np.min(error0[1:-1]), 4), round(np.max(error0[1:-1]), 4), round(np.mean(error0[1:-1]), 4)],    # Erster und letzter Wert verwerfen
-        "error1": [round(np.min(error1[1:-1]), 4), round(np.max(error1[1:-1]), 4), round(np.mean(error1[1:-1]), 4)],    # Erster und letzter Wert verwerfen
-    }
+Durchmesser = 1
+Höhe = 2
 
-    # Erstelle das Subplot mit 2 Zeilen und 2 Spalten
-    fig = make_subplots(
-        rows=2, cols=2,  # Zwei Zeilen und zwei Spalten
-        subplot_titles=("Magnetfeldstärken", "Winkelgraphen", "Statistiken"),
-        column_widths=[0.7, 0.3],  # Spaltenbreite anpassen
-        row_heights=[0.7, 0.3],  # Zeilenhöhe anpassen
-        horizontal_spacing=0.1,  # Abstand zwischen den Spalten
-        vertical_spacing=0.1,    # Abstand zwischen den Reihen
-        specs=[[{"type": "xy"}, {"type": "xy"}], [{"type": "xy"}, {"type": "table"}]]  # Tabelle in Reihe 2, Spalte 2
-    )
+# Create magnet
+magnet = magpy.magnet.Cylinder(
+    polarization=(1, 0, 0),
+    dimension=(Durchmesser, Höhe),
+    position=(0, 0, 1),
+    style_label="Magnet",
+    style_color=".7",
+)
 
-    # --- Plot 1: Magnetfeldstärken ---
-    #region Magnetfeldstärken
-    fig.add_trace(go.Scatter(
-        x=angles,
-        y=Bx0,
-        mode='lines',
-        name='Bx0',
-        line=dict(color='red'),
-        hovertemplate='Winkel: %{x}°<br>Bx: %{y} mT'
-    ), row=1, col=1)
+# Array mit Rotationswinkeln für die X- und Y-Achse
+rotation_angles_magnet = 30  # Rotation des Magneten, [X-Achse, Y-Achse] in Grad
 
-    fig.add_trace(go.Scatter(
-        x=angles,
-        y=By0,
-        mode='lines',
-        name='By0',
-        hovertemplate='Winkel: %{x}°<br>By: %{y} mT'
-    ), row=1, col=1)
-
-    fig.add_trace(go.Scatter(
-        x=angles,
-        y=Bz0,
-        mode='lines',
-        name='Bz0',
-        hovertemplate='Winkel: %{x}°<br>Bz: %{y} mT'
-    ), row=1, col=1)
-
-    fig.add_trace(go.Scatter(
-        x=angles,
-        y=Bxy0,
-        mode='lines',
-        name='Bxy0',
-        hovertemplate='Winkel: %{x}°<br>Bxy: %{y} mT'
-    ), row=1, col=1)
-
-    fig.add_trace(go.Scatter(
-        x=angles,
-        y=Bx1,
-        mode='lines',
-        name='Bx1',
-        hovertemplate='Winkel: %{x}°<br>Bx1: %{y} mT'
-    ), row=1, col=1)
-
-    fig.add_trace(go.Scatter(
-        x=angles,
-        y=By1,
-        mode='lines',
-        name='By1',
-        hovertemplate='Winkel: %{x}°<br>By1: %{y} mT'
-    ), row=1, col=1)
-
-    fig.add_trace(go.Scatter(
-        x=angles,
-        y=Bxy1,
-        mode='lines',
-        name='Bxy1',
-        hovertemplate='Winkel: %{x}°<br>Bxy1: %{y} mT'
-    ), row=1, col=1)
-
-    fig.add_trace(go.Scatter(
-        x=angles,
-        y=Bz1,
-        mode='lines',
-        name='Bz1',
-        hovertemplate='Winkel: %{x}°<br>Bz1: %{y} mT'
-    ), row=1, col=1)
-    #endregion
-
-    # --- Plot 2: Winkelgraphen ---
-    #region Winkelgraphen
-    fig.add_trace(go.Scatter(
-        x=angles[1:-1],
-        y=angle0[1:-1],
-        mode='lines',
-        name='Angle0',
-        hovertemplate='Winkel: %{x}°<br>Angle0: %{y}°'
-    ), row=1, col=2)
-
-    fig.add_trace(go.Scatter(
-        x=angles[1:-1],
-        y=angle1[1:-1],
-        mode='lines',
-        name='Angle1',
-        hovertemplate='Winkel: %{x}°<br>Angle1: %{y}°'
-    ), row=1, col=2)
-    #endregion
-
-    # --- Plot 3: Fehlerdiagramm ---
-    #region Fehlerdiagramm
-    fig.add_trace(go.Scatter(
-        x=angles[1:-1],
-        y=error0[1:-1],
-        mode='lines',
-        name='Error0',
-        hovertemplate='Winkel: %{x}°<br>Error0: %{y} mT'
-    ), row=2, col=1)
-
-    fig.add_trace(go.Scatter(
-        x=angles[1:-1],
-        y=error1[1:-1],
-        mode='lines',
-        name='Error1',
-        hovertemplate='Winkel: %{x}°<br>Error1: %{y} mT'
-    ), row=2, col=1)
-    #endregion
-
-    # --- Plot 4: Statistiken ---
-    #region Statistiken
-    fig.add_trace(go.Table(
-        header=dict(values=["Messgröße", "Min", "Max", "Mittelwert"]),
-        cells=dict(values=[ 
-            ["Bx0", "By0", "Bxy0", "Bx1", "By1", "Bxy1", "Bz1", "Error0", "Error1"],  # Messgrößen
-            [stats["Bx0"][0], stats["By0"][0], stats["Bxy0"][0], stats["Bx1"][0], stats["By1"][0], stats["Bxy1"][0], stats["Bz1"][0], stats["error0"][0], stats["error1"][0]],  # Min-Werte
-            [stats["Bx0"][1], stats["By0"][1], stats["Bxy0"][1], stats["Bx1"][1], stats["By1"][1], stats["Bxy1"][1], stats["Bz1"][1], stats["error0"][1], stats["error1"][1]],  # Max-Werte
-            [stats["Bx0"][2], stats["By0"][2], stats["Bxy0"][2], stats["Bx1"][2], stats["By1"][2], stats["Bxy1"][2], stats["Bz1"][2], stats["error0"][2], stats["error1"][2]],  # Mittelwerte
-        ])
-    ), row=2, col=2)
-    #endregion
+# Erstelle Rotation um X und Y Achse
+rotation_axis_magnet = R.from_euler('x', rotation_angles_magnet, degrees=True)  # Rotation um die X-Achse
+# Wenden wir die kombinierte Rotation auf die Orientierung des Magneten an
 
 
-    # Layout-Änderungen
-    fig.update_layout(
-        title="Magnetfeldstärken und Statistiken",
-        showlegend=True,
-    )
+# Versatz ermitteln und nue Positionieren
+xy_offset_magnet_tilted = np.sin(np.radians(rotation_angles_magnet)) * Höhe/2
+z_offset_magnet_tilted = (np.tan(np.radians(rotation_angles_magnet))*xy_offset_magnet_tilted)
+print(xy_offset_magnet_tilted, z_offset_magnet_tilted)
+magnet.position = magnet.position - [0,xy_offset_magnet_tilted,0] #Ergänzen des Offsets der durch das Kippen entsteht
+magnet.orientation = rotation_axis_magnet
 
-    fig.update_xaxes(title_text="Winkel [°]", row=1, col=1)
-    fig.update_yaxes(title_text="Feldstärke [mT]", row=1, col=1)
-    fig.update_xaxes(title_text="Winkel [°]", row=1, col=2)
-    fig.update_yaxes(title_text="Winkel [°]", row=1, col=2)
-    fig.update_xaxes(title_text="Winkel [°]", row=2, col=1)
-    fig.update_yaxes(title_text="Fehler [mT]", row=2, col=1)
+# Definiere die Winkel für die Magnetbewegung (für symmetrische Rotation)
+angles = np.linspace(0, 360, 72)
 
-    fig.show()
+# Magnet um seine eigene, geneigte Achse rotieren lassen
+magnet.rotate_from_angax(angles, rotation_axis_magnet.apply([0, 0, 1]), None, "auto", degrees=True)
+
+# Show scene
+magpy.show(magnet, animation=True, backend="plotly")
+
+
+### Magnet
+# Achsversatz xy Allgemein bekannt als Versatz
+# Wobble        Versatz des magneten ohne Änderung der Rotationsachse
+# Kippung       Kippung entlang der X- und oder Y-Achse in Grad durch das Magnetzentrum
