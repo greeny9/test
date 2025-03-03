@@ -1,0 +1,142 @@
+#include "Adafruit_MLX90393.h"
+
+Adafruit_MLX90393 sensor = Adafruit_MLX90393();
+#define MLX90393_CS 10
+
+bool burstMode = false;
+bool singleMode = true;
+bool useMilliTesla = true;
+
+void setup(void)
+{
+  Serial.begin(115200);
+
+  /* Wait for serial on USB platforms. */
+  while (!Serial) {
+      delay(10);
+  }
+
+  Serial.println("Starting Adafruit MLX90393 Demo");
+  Serial.println("Available commands:");
+  Serial.println("1 - Perform single measurement or toggle burst mode");
+  Serial.println("MODE_SINGLE or MODE_BURST - Switch between single and burst mode");
+  Serial.println("GAIN_X - Change gain (e.g., GAIN_1X, GAIN_1_33X, GAIN_1_67X, GAIN_2X, GAIN_2_5X, GAIN_3X, GAIN_4X, GAIN_5X)");
+  Serial.println("RES_X - Change resolution (e.g., RES_16, RES_17, RES_18, RES_19)");
+  Serial.println("UNIT_mT or UNIT_uT - Change unit of measurement");
+
+  if (! sensor.begin_I2C(0x10)) {          
+    Serial.println("No sensor found ... check your wiring?");
+    while (1) { delay(10); }
+  }
+  Serial.println("Found a MLX90393 sensor");
+
+  sensor.setGain(MLX90393_GAIN_5X);
+  printGain();
+
+  sensor.setResolution(MLX90393_X, MLX90393_RES_19);
+  sensor.setResolution(MLX90393_Y, MLX90393_RES_19);
+  sensor.setResolution(MLX90393_Z, MLX90393_RES_19);
+
+  sensor.setOversampling(MLX90393_OSR_3);
+  sensor.setFilter(MLX90393_FILTER_5);
+}
+
+void loop(void) {
+  if (Serial.available()) {
+    String command = Serial.readStringUntil('\n');
+    command.trim();
+
+    if (command == "1") {
+      if (singleMode) {
+        printSensorValues();
+      } else {
+        burstMode = !burstMode;
+        Serial.println(burstMode ? "Burst mode started" : "Burst mode paused");
+      }
+    } else if (command == "MODE_SINGLE") {
+      singleMode = true;
+      burstMode = false;
+      Serial.println("Switched to Single Mode");
+    } else if (command == "MODE_BURST") {
+      singleMode = false;
+      Serial.println("Switched to Burst Mode");
+    } else if (command.startsWith("GAIN_")) {
+      changeGain(command);
+    } else if (command.startsWith("RES_")) {
+      changeResolution(command);
+    } else if (command == "UNIT_mT") {
+      useMilliTesla = true;
+      Serial.println("Unit set to milliTesla (mT)");
+    } else if (command == "UNIT_uT") {
+      useMilliTesla = false;
+      Serial.println("Unit set to microTesla (µT)");
+    }
+  }
+
+  if (!singleMode && burstMode) {
+    printSensorValues();
+    delay(1000);
+  }
+}
+
+void printSensorValues() {
+  float x, y, z;
+  if (sensor.readData(&x, &y, &z)) {
+      float factor = useMilliTesla ? 1000.0 : 1.0;
+      String unit = useMilliTesla ? " mT" : " µT";
+
+      Serial.print("X: "); Serial.print(x / factor, 4); Serial.println(unit);
+      Serial.print("Y: "); Serial.print(y / factor, 4); Serial.println(unit);
+      Serial.print("Z: "); Serial.print(z / factor, 4); Serial.println(unit);
+      Serial.print("Bxy: "); Serial.print(sqrt(x*x+y*y) / factor, 4); Serial.println(unit);
+      Serial.println();
+  } else {
+      Serial.println("Unable to read XYZ data from the sensor.");
+  }
+}
+
+void changeGain(String command) {
+  if (command == "GAIN_1X") sensor.setGain(MLX90393_GAIN_1X);
+  else if (command == "GAIN_1_33X") sensor.setGain(MLX90393_GAIN_1_33X);
+  else if (command == "GAIN_1_67X") sensor.setGain(MLX90393_GAIN_1_67X);
+  else if (command == "GAIN_2X") sensor.setGain(MLX90393_GAIN_2X);
+  else if (command == "GAIN_2_5X") sensor.setGain(MLX90393_GAIN_2_5X);
+  else if (command == "GAIN_3X") sensor.setGain(MLX90393_GAIN_3X);
+  else if (command == "GAIN_4X") sensor.setGain(MLX90393_GAIN_4X);
+  else if (command == "GAIN_5X") sensor.setGain(MLX90393_GAIN_5X);
+  else {
+    Serial.println("Invalid gain value.");
+    return;
+  }
+  Serial.print("New gain set: ");
+  printGain();
+}
+
+void changeResolution(String command) {
+  mlx90393_resolution res;
+  if (command == "RES_16") res = MLX90393_RES_16;
+  else if (command == "RES_17") res = MLX90393_RES_17;
+  else if (command == "RES_18") res = MLX90393_RES_18;
+  else if (command == "RES_19") res = MLX90393_RES_19;
+  else {
+    Serial.println("Invalid resolution value.");
+    return;
+  }
+  sensor.setResolution(MLX90393_X, res);
+  sensor.setResolution(MLX90393_Y, res);
+  sensor.setResolution(MLX90393_Z, res);
+  Serial.print("New resolution set: "); Serial.println(command);
+}
+
+void printGain() {
+  switch (sensor.getGain()) {
+    case MLX90393_GAIN_1X: Serial.println("1 x"); break;
+    case MLX90393_GAIN_1_33X: Serial.println("1.33 x"); break;
+    case MLX90393_GAIN_1_67X: Serial.println("1.67 x"); break;
+    case MLX90393_GAIN_2X: Serial.println("2 x"); break;
+    case MLX90393_GAIN_2_5X: Serial.println("2.5 x"); break;
+    case MLX90393_GAIN_3X: Serial.println("3 x"); break;
+    case MLX90393_GAIN_4X: Serial.println("4 x"); break;
+    case MLX90393_GAIN_5X: Serial.println("5 x"); break;
+  }
+}
