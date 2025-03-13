@@ -1,0 +1,64 @@
+#include <Tle493d.h>
+#include <Arduino.h>
+
+Tle493d Tle493dMagnetic3DSensor = Tle493d();
+
+const int numSamples = 50;  // Anzahl der Messungen pro Median-Berechnung
+
+void setup() {
+  Serial.begin(115200);
+  while (!Serial);
+  
+  // If using the MS2Go-Kit: Enable following lines to switch on the sensor
+  pinMode(LED2, OUTPUT);
+  digitalWrite(LED2, HIGH);
+  delay(50);
+
+  Tle493dMagnetic3DSensor.begin();
+  Tle493dMagnetic3DSensor.enableTemp();
+}
+
+float getMedian(float values[], int size) {
+  // Werte sortieren (einfache Bubble-Sort-Methode)
+  for (int i = 0; i < size - 1; i++) {
+    for (int j = i + 1; j < size; j++) {
+      if (values[i] > values[j]) {
+        float temp = values[i];
+        values[i] = values[j];
+        values[j] = temp;
+      }
+    }
+  }
+  return values[size / 2];  // Median ist der mittlere Wert nach dem Sortieren
+}
+
+void loop() {
+  if (Serial.available() > 0) {  // Warte auf eine Eingabe im Serial Monitor
+    char command = Serial.read();  // Lese das empfangene Zeichen
+
+    if (command == 'm') {  // Falls 'm' gesendet wurde, Werte auslesen
+      float xValues[numSamples], yValues[numSamples], zValues[numSamples];
+      
+      // Messwerte erfassen
+      for (int i = 0; i < numSamples; i++) {  
+        Tle493dMagnetic3DSensor.updateData();
+        xValues[i] = Tle493dMagnetic3DSensor.getX();
+        yValues[i] = Tle493dMagnetic3DSensor.getY();
+        zValues[i] = Tle493dMagnetic3DSensor.getZ();
+      }
+      
+      // Median berechnen
+      float medianX = getMedian(xValues, numSamples);
+      float medianY = getMedian(yValues, numSamples);
+      float medianZ = getMedian(zValues, numSamples);
+      
+      // Ausgabe über Serial Monitor
+      /*Serial.print("Median X: "); Serial.print(medianX); Serial.print(" ; ");
+      Serial.print("Median Y: "); Serial.print(medianY); Serial.print(" ; ");
+      Serial.print("Median Z: "); Serial.println(medianZ);*/
+      Serial.print(medianX); Serial.print(";");
+      Serial.print(medianY); Serial.print(";");
+      Serial.print(medianZ); Serial.println();
+    }
+  }
+}
