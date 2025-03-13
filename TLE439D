@@ -1,5 +1,4 @@
 #include <Tle493d.h>
-#include <Arduino.h>
 
 Tle493d Tle493dMagnetic3DSensor = Tle493d();
 
@@ -58,7 +57,7 @@ void loop() {
       Serial.print("Median Z: "); Serial.println(medianZ);*/
       Serial.print(medianX); Serial.print(";");
       Serial.print(medianY); Serial.print(";");
-      Serial.print(medianZ); Serial.println();
+      Serial.print(medianZ); Serial.print("\n");
     }
   }
 }
