@@ -6,7 +6,7 @@ Tle493d Tle493dMagnetic3DSensor = Tle493d();
 const int numSamples = 50;  // Anzahl der Messungen pro Median-Berechnung
 
 void setup() {
-  Serial.begin(115200);
+  Serial.begin(9600);
   while (!Serial);
   
   // If using the MS2Go-Kit: Enable following lines to switch on the sensor
